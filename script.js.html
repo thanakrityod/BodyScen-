@@ -1,0 +1,392 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name=claude:viewport-fit-sides content=cover><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}</style><style>.md-table{overflow-x:auto}@media print{.md-table{overflow-x:visible}}</style><style>:root{color-scheme:light dark;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}}:root[data-theme="dark"]{color-scheme:dark;--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}:root[data-theme="light"]{color-scheme:light}@media print{:root,:root[data-theme="dark"]{color-scheme:light;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}}body{background:var(--md-bg);color:var(--md-text);max-width:720px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:10px;font:14px/1.55 -apple-system,BlinkMacSystemFont,'SF Pro','Segoe UI',sans-serif;overflow-wrap:break-word}body>:first-child{margin-top:0}h1,h2,h3,h4,h5,h6{margin:6px 0 0;line-height:1.25;font-weight:600;text-wrap:balance}h1{font-size:1.35em}h2{font-size:1.15em;color:var(--md-muted)}h3,h4,h5,h6{font-size:1em}p,ul,ol,blockquote,table,pre,hr{margin:0}strong{font-weight:600}a{color:var(--md-link);text-decoration:none}a:hover{text-decoration:underline}ul,ol{display:flex;flex-direction:column;gap:6px;padding-left:22px}ul{list-style:disc}ol{list-style:decimal}:is(li,td,th)>*+:is(p,ul,ol,blockquote){margin-top:6px}blockquote{display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--md-rule);padding-left:10px;color:var(--md-muted)}:not(pre)>code{background:var(--md-fill);padding:1px 3px;border-radius:4px;font:.92em 'SF Mono',ui-monospace,Menlo,Consolas,monospace}a>code{background:none;color:inherit}pre{background:var(--md-fill);padding:10px 12px;border-radius:6px;overflow-x:auto;font:12px/1.5 'SF Mono',ui-monospace,Menlo,Consolas,monospace;margin-block:4px}pre code{background:none;padding:0;font:inherit}table{width:100%;border-collapse:separate;border-spacing:2px;font:inherit}th,td{padding:6px 8px;border-radius:3px;text-align:left;vertical-align:top}th{background:var(--md-fill-strong);font-weight:600}td{background:var(--md-fill)}:is(th,td) :not(pre)>code{background:transparent}hr{border:0;border-top:1px solid var(--md-rule-strong);margin-block:10px}img{max-width:100%;height:auto;border-radius:4px}</style>
+</head><body>
+<pre><code class="language-javascript">/* ==========================================================================
+   Body Scent — script.js (ใช้ร่วมกันทุกหน้า)
+   - product.html : แสดงสินค้า + กรองตาม mood
+   - order.html   : เติมข้อมูลลงฟอร์มจาก URL และส่งคำสั่งซื้อ
+   - admin.html   : ดึงรายการสั่งซื้อจาก Google Sheets มาแสดงเป็นตาราง
+   แต่ละส่วนทำงานเฉพาะเมื่อหน้านั้นมี element ตาม id ที่กำหนด
+   ========================================================================== */
+
+(function () {
+  &#39;use strict&#39;;
+
+  /* ------------------------------------------------------------------------
+     Config
+     ------------------------------------------------------------------------ */
+  var PRODUCTS_URL = &#39;products.json&#39;;
+
+  var APPS_SCRIPT_URL =
+    &#39;https://script.google.com/macros/s/AKfycbxcv5KDB0JHrQaB5c2ky2HpKK6rmizeRRmPU6nISV9h_8I4ITlgCUaJ7Qdvc9RljtDQ/exec&#39;;
+
+  var SHEET_ID = &#39;1-3jcm0As7TYGmHJKS8zWc_fx0tjHPKDmlZpUl8xIqBE&#39;;
+  // ถ้าข้อมูลอยู่ในแท็บที่ไม่ใช่แท็บแรก ให้ใส่ gid ของแท็บนั้น (ดูได้ใน URL หลัง #gid=)
+  var SHEET_GID = &#39;&#39;;
+  var SHEET_CSV_URL =
+    &#39;https://docs.google.com/spreadsheets/d/&#39; + SHEET_ID + &#39;/gviz/tq?tqx=out:csv&#39; +
+    (SHEET_GID ? &#39;&amp;gid=&#39; + encodeURIComponent(SHEET_GID) : &#39;&#39;);
+
+  var MOODS = [
+    { key: &#39;all&#39;, label: &#39;ทั้งหมด&#39; },
+    { key: &#39;fresh&#39;, label: &#39;Fresh&#39; },
+    { key: &#39;sweet&#39;, label: &#39;Sweet&#39; },
+    { key: &#39;confident&#39;, label: &#39;Confident&#39; },
+    { key: &#39;romance&#39;, label: &#39;Romance&#39; }
+  ];
+
+  /* ------------------------------------------------------------------------
+     Helpers
+     ------------------------------------------------------------------------ */
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined &amp;&amp; text !== null) node.textContent = text;
+    return node;
+  }
+
+  function formatPrice(value) {
+    var n = Number(value);
+    return isNaN(n) ? String(value) : n.toLocaleString(&#39;th-TH&#39;);
+  }
+
+  function ready(fn) {
+    if (document.readyState === &#39;loading&#39;) {
+      document.addEventListener(&#39;DOMContentLoaded&#39;, fn);
+    } else {
+      fn();
+    }
+  }
+
+  /* ========================================================================
+     1) product.html
+     ======================================================================== */
+  function initProducts() {
+    var filterBar = document.getElementById(&#39;filter-bar&#39;);
+    var list = document.getElementById(&#39;product-list&#39;);
+    if (!filterBar || !list) return;
+
+    var products = [];
+    var currentMood = &#39;all&#39;;
+
+    function isValidMood(key) {
+      return MOODS.some(function (m) { return m.key === key; });
+    }
+
+    function getMoodFromUrl() {
+      var mood = (new URLSearchParams(window.location.search).get(&#39;mood&#39;) || &#39;&#39;).toLowerCase();
+      return isValidMood(mood) ? mood : &#39;all&#39;;
+    }
+
+    function syncUrl(mood) {
+      if (!window.history || !history.replaceState) return;
+      var url = new URL(window.location.href);
+      if (mood === &#39;all&#39;) {
+        url.searchParams.delete(&#39;mood&#39;);
+      } else {
+        url.searchParams.set(&#39;mood&#39;, mood);
+      }
+      history.replaceState(null, &#39;&#39;, url.toString());
+    }
+
+    function buildOrderUrl(product) {
+      var item = product.name + (product.size ? &#39; &#39; + product.size : &#39;&#39;);
+      var params = new URLSearchParams();
+      params.set(&#39;item&#39;, item);
+      params.set(&#39;price&#39;, product.price);
+      return &#39;order.html?&#39; + params.toString();
+    }
+
+    function renderFilters() {
+      filterBar.textContent = &#39;&#39;;
+      MOODS.forEach(function (m) {
+        var btn = el(&#39;button&#39;, &#39;filter__item&#39;, m.label);
+        btn.type = &#39;button&#39;;
+        btn.setAttribute(&#39;data-mood&#39;, m.key);
+        btn.setAttribute(&#39;aria-pressed&#39;, String(m.key === currentMood));
+        btn.addEventListener(&#39;click&#39;, function () {
+          setMood(m.key);
+        });
+        filterBar.appendChild(btn);
+      });
+    }
+
+    function createCard(product) {
+      var card = el(&#39;article&#39;, &#39;product-card&#39;);
+
+      var media = el(&#39;div&#39;, &#39;product-card__media&#39;);
+      var img = el(&#39;img&#39;);
+      img.src = product.image;
+      img.alt = product.name;
+      img.loading = &#39;lazy&#39;;
+      media.appendChild(img);
+      card.appendChild(media);
+
+      var body = el(&#39;div&#39;, &#39;product-card__body&#39;);
+
+      var moodLabel = MOODS.filter(function (m) { return m.key === product.mood; })[0];
+      var mood = el(&#39;span&#39;, &#39;mood mood--&#39; + product.mood);
+      mood.appendChild(el(&#39;i&#39;, &#39;mood__dot&#39;));
+      mood.appendChild(document.createTextNode(moodLabel ? moodLabel.label : product.mood));
+      body.appendChild(mood);
+
+      body.appendChild(el(&#39;h3&#39;, &#39;product-card__name&#39;, product.name));
+
+      var meta = product.size || (product.type === &#39;rollon&#39; ? &#39;โรลออน&#39; : &#39;&#39;);
+      if (meta) body.appendChild(el(&#39;p&#39;, &#39;product-card__meta&#39;, meta));
+
+      var footer = el(&#39;div&#39;, &#39;product-card__footer&#39;);
+      var price = el(&#39;span&#39;, &#39;price&#39;, formatPrice(product.price));
+      price.appendChild(el(&#39;small&#39;, null, &#39;บาท&#39;));
+      footer.appendChild(price);
+
+      var order = el(&#39;a&#39;, &#39;btn btn--accent&#39;, &#39;สั่งซื้อ&#39;);
+      order.href = buildOrderUrl(product);
+      footer.appendChild(order);
+
+      body.appendChild(footer);
+      card.appendChild(body);
+      return card;
+    }
+
+    function renderProducts() {
+      var shown = products.filter(function (p) {
+        return currentMood === &#39;all&#39; || p.mood === currentMood;
+      });
+
+      list.textContent = &#39;&#39;;
+      if (!shown.length) {
+        list.appendChild(el(&#39;p&#39;, &#39;text-muted&#39;, &#39;ไม่พบสินค้าในหมวดนี้&#39;));
+        return;
+      }
+      shown.forEach(function (p) {
+        list.appendChild(createCard(p));
+      });
+    }
+
+    function setMood(mood) {
+      currentMood = mood;
+      Array.prototype.forEach.call(filterBar.querySelectorAll(&#39;.filter__item&#39;), function (btn) {
+        btn.setAttribute(&#39;aria-pressed&#39;, String(btn.getAttribute(&#39;data-mood&#39;) === mood));
+      });
+      renderProducts();
+      syncUrl(mood);
+    }
+
+    currentMood = getMoodFromUrl();
+    renderFilters();
+    list.appendChild(el(&#39;p&#39;, &#39;text-muted&#39;, &#39;กำลังโหลดสินค้า...&#39;));
+
+    fetch(PRODUCTS_URL)
+      .then(function (res) {
+        if (!res.ok) throw new Error(&#39;HTTP &#39; + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        products = Array.isArray(data) ? data : [];
+        renderProducts();
+      })
+      .catch(function (error) {
+        console.error(error);
+        list.textContent = &#39;&#39;;
+        list.appendChild(el(&#39;p&#39;, &#39;text-muted&#39;, &#39;โหลดข้อมูลสินค้าไม่สำเร็จ กรุณารีเฟรชหน้าอีกครั้ง&#39;));
+      });
+  }
+
+  /* ========================================================================
+     2) order.html
+     ======================================================================== */
+  function initOrder() {
+    var form = document.getElementById(&#39;orderForm&#39;);
+    if (!form) return;
+
+    var itemsInput = document.getElementById(&#39;items&#39;);
+    var totalInput = document.getElementById(&#39;total&#39;);
+
+    // เติมข้อมูลจาก URL parameter ทันทีที่โหลดหน้า (ทั้ง items และ total)
+    var params = new URLSearchParams(window.location.search);
+    var item = params.get(&#39;item&#39;);
+    var price = params.get(&#39;price&#39;);
+    if (itemsInput &amp;&amp; item) itemsInput.value = item;
+    if (totalInput &amp;&amp; price) totalInput.value = price;
+
+    function valueOf(id) {
+      var node = document.getElementById(id);
+      return node ? node.value.trim() : &#39;&#39;;
+    }
+
+    var submitting = false;
+    var submitBtn = form.querySelector(&#39;[type=&#34;submit&#34;]&#39;);
+
+    function setSubmitting(state) {
+      submitting = state;
+      if (submitBtn) submitBtn.disabled = state;
+    }
+
+    form.addEventListener(&#39;submit&#39;, function (event) {
+      event.preventDefault();
+      if (submitting) return;
+      if (typeof form.reportValidity === &#39;function&#39; &amp;&amp; !form.reportValidity()) return;
+
+      var payload = {
+        customerName: valueOf(&#39;customerName&#39;),
+        contact: valueOf(&#39;contact&#39;),
+        items: valueOf(&#39;items&#39;),
+        total: valueOf(&#39;total&#39;),
+        note: valueOf(&#39;note&#39;)
+      };
+
+      setSubmitting(true);
+
+      fetch(APPS_SCRIPT_URL, {
+        method: &#39;POST&#39;,
+        body: JSON.stringify(payload)
+      })
+        .then(() =&gt; { window.location.href = &#39;thankyou.html&#39;; })
+        .catch(error =&gt; {
+          console.error(error);
+          alert(&#39;เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง&#39;);
+          setSubmitting(false);
+        });
+    });
+  }
+
+  /* ========================================================================
+     3) admin.html
+     ======================================================================== */
+
+  // Parser CSV (รองรับ &#34;, ขึ้นบรรทัดใหม่ในเครื่องหมายคำพูด, &#34;&#34; และ CRLF)
+  function parseCSV(text) {
+    var rows = [];
+    var row = [];
+    var field = &#39;&#39;;
+    var inQuotes = false;
+
+    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1); // ตัด BOM
+
+    for (var i = 0; i &lt; text.length; i++) {
+      var ch = text[i];
+
+      if (inQuotes) {
+        if (ch === &#39;&#34;&#39;) {
+          if (text[i + 1] === &#39;&#34;&#39;) {
+            field += &#39;&#34;&#39;;
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          field += ch;
+        }
+      } else if (ch === &#39;&#34;&#39;) {
+        inQuotes = true;
+      } else if (ch === &#39;,&#39;) {
+        row.push(field);
+        field = &#39;&#39;;
+      } else if (ch === &#39;\n&#39; || ch === &#39;\r&#39;) {
+        if (ch === &#39;\r&#39; &amp;&amp; text[i + 1] === &#39;\n&#39;) i++;
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = &#39;&#39;;
+      } else {
+        field += ch;
+      }
+    }
+
+    if (field !== &#39;&#39; || row.length) {
+      row.push(field);
+      rows.push(row);
+    }
+
+    // ตัดแถวว่างทิ้ง
+    return rows.filter(function (r) {
+      return r.some(function (cell) { return cell.trim() !== &#39;&#39;; });
+    });
+  }
+
+  function initAdmin() {
+    var tbody = document.querySelector(&#39;#ordersTable tbody&#39;);
+    if (!tbody) return;
+
+    var COLUMN_COUNT = 6;
+
+    // ชื่อหัวคอลัมน์ที่รู้จัก (ถ้าไม่ตรง จะใช้ลำดับคอลัมน์ 1-6 ตามที่กำหนด)
+    var COLUMN_ALIASES = [
+      [&#39;timestamp&#39;, &#39;date&#39;, &#39;datetime&#39;, &#39;วันเวลา&#39;, &#39;วันที่&#39;, &#39;เวลา&#39;],
+      [&#39;customername&#39;, &#39;name&#39;, &#39;ชื่อลูกค้า&#39;, &#39;ชื่อ&#39;],
+      [&#39;contact&#39;, &#39;phone&#39;, &#39;เบอร์โทร&#39;, &#39;ติดต่อ&#39;, &#39;เบอร์โทร/line&#39;],
+      [&#39;items&#39;, &#39;item&#39;, &#39;รายการสินค้า&#39;, &#39;สินค้า&#39;, &#39;รายการ&#39;],
+      [&#39;total&#39;, &#39;price&#39;, &#39;จำนวนเงินรวม&#39;, &#39;ยอดรวม&#39;, &#39;ราคา&#39;],
+      [&#39;note&#39;, &#39;notes&#39;, &#39;หมายเหตุ&#39;]
+    ];
+
+    function showMessage(message) {
+      tbody.textContent = &#39;&#39;;
+      var tr = el(&#39;tr&#39;);
+      var td = el(&#39;td&#39;, &#39;text-muted&#39;, message);
+      td.colSpan = COLUMN_COUNT;
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    }
+
+    function resolveColumns(headerRow) {
+      var header = headerRow.map(function (h) { return h.trim().toLowerCase(); });
+      return COLUMN_ALIASES.map(function (aliases, position) {
+        for (var i = 0; i &lt; header.length; i++) {
+          if (aliases.indexOf(header[i]) !== -1) return i;
+        }
+        return position;
+      });
+    }
+
+    function render(rows) {
+      if (rows.length &lt; 2) {
+        showMessage(&#39;ยังไม่มีรายการสั่งซื้อ&#39;);
+        return;
+      }
+
+      var columns = resolveColumns(rows[0]);
+      // รายการถูกเพิ่มต่อท้ายชีตเสมอ จึงกลับลำดับให้รายการล่าสุดขึ้นก่อน
+      var data = rows.slice(1).reverse();
+
+      tbody.textContent = &#39;&#39;;
+      data.forEach(function (row) {
+        var tr = el(&#39;tr&#39;);
+        columns.forEach(function (colIndex, i) {
+          var value = (row[colIndex] || &#39;&#39;).trim();
+          if (i === 4 &amp;&amp; value !== &#39;&#39;) value = formatPrice(value) + &#39; บาท&#39;;
+          tr.appendChild(el(&#39;td&#39;, null, value));
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    showMessage(&#39;กำลังโหลดข้อมูล...&#39;);
+
+    fetch(SHEET_CSV_URL)
+      .then(function (res) {
+        if (!res.ok) throw new Error(&#39;HTTP &#39; + res.status);
+        return res.text();
+      })
+      .then(function (text) {
+        render(parseCSV(text));
+      })
+      .catch(function (error) {
+        console.error(error);
+        showMessage(&#39;โหลดข้อมูลไม่สำเร็จ ตรวจสอบว่าแชร์ชีตแบบ &#34;ทุกคนที่มีลิงก์ดูได้&#34; แล้ว&#39;);
+      });
+  }
+
+  /* ------------------------------------------------------------------------
+     Init
+     ------------------------------------------------------------------------ */
+  ready(function () {
+    initProducts();
+    initOrder();
+    initAdmin();
+  });
+})();
+
+</code></pre>
+
+</body></html>
